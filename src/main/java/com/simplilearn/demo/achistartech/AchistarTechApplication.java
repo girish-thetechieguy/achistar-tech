@@ -15,6 +15,6 @@ public class AchistarTechApplication {
 
 	@RequestMapping("/")
 	public String homepage(){
-		return "Hi all! Welcome to Simplilearn assignment111!";
+		return "Hi all! Welcome to Simplilearn assignment!";
 	}
 }
