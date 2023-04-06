@@ -1,14 +1,43 @@
-pipeline {
-    agent any
-    options {
-        buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '5', daysToKeepStr: '', numToKeepStr: '5')
-	disableConcurrentBuilds()
+def containerName="achistar-tech"
+def tag="latest"
+def dockerHubUser="girishtechieguy"
+def httpPort="8090"
+
+node {
+
+    stage('Checkout') {
+        checkout scm
     }
-    stages {
-        stage('Hello') {
-            steps {
-                echo 'Hello World'
-            }
+
+    stage('Build'){
+        sh "mvn clean install"
+    }
+
+    stage("Image Prune"){
+         sh "docker image prune -a -f"
+    }
+
+    stage('Image Build'){
+        sh "docker build -t $containerName:$tag  -t $containerName --pull --no-cache ."
+        echo "Image build complete"
+    }
+
+    stage('Push to Docker Registry'){
+        withCredentials([usernamePassword(credentialsId: 'dockerHubAccount', usernameVariable: 'dockerUser', passwordVariable: 'dockerPassword')]) {
+            sh "docker login -u $dockerUser -p $dockerPassword"
+            sh "docker tag $containerName:$tag $dockerUser/$containerName:$tag"
+            sh "docker push $dockerUser/$containerName:$tag"
+            echo "Image push complete"
         }
     }
+    
+    stage('Run App'){
+        sh "docker rm $containerName -f"
+        sh "docker pull $dockerHubUser/$containerName"
+        sh "docker run -d --rm -p $httpPort:$httpPort --name $containerName $dockerHubUser/$containerName:$tag"
+        echo "Application started on port: ${httpPort} (http)"
+        
+        
+    }
+
 }
